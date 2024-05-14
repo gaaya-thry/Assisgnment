@@ -9,13 +9,29 @@ package assisgnment;
  * @author DELL
  */
 
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 
-public class Assisgnment {
+public class Assignment extends Application {
+
+    private TableView<JobData> table = new TableView<>();
+
     public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
         String filePath = "C:\\Users\\DELL\\Downloads\\extracted_log";
         HashMap<String, Integer> jobsCreated = new HashMap<>();
         HashMap<String, Integer> jobsEnded = new HashMap<>();
@@ -37,13 +53,56 @@ public class Assisgnment {
             e.printStackTrace();
         }
 
-        // Display results in a table format
-        System.out.println("Date\tJobs Created\tJobs Ended");
+        // Setting up the table columns
+        TableColumn<JobData, String> dateColumn = new TableColumn<>("Date");
+        dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
+
+        TableColumn<JobData, Integer> createdColumn = new TableColumn<>("Jobs Created");
+        createdColumn.setCellValueFactory(new PropertyValueFactory<>("jobsCreated"));
+
+        TableColumn<JobData, Integer> endedColumn = new TableColumn<>("Jobs Ended");
+        endedColumn.setCellValueFactory(new PropertyValueFactory<>("jobsEnded"));
+
+        table.getColumns().add(dateColumn);
+        table.getColumns().add(createdColumn);
+        table.getColumns().add(endedColumn);
+
+        // Populating the table with data
         for (String date : jobsCreated.keySet()) {
             int created = jobsCreated.getOrDefault(date, 0);
             int ended = jobsEnded.getOrDefault(date, 0);
-            System.out.println(date + "\t" + created + "\t\t" + ended);
+            table.getItems().add(new JobData(date, created, ended));
+        }
+
+        VBox vbox = new VBox(table);
+        Scene scene = new Scene(vbox);
+
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Job Data");
+        primaryStage.show();
+    }
+
+    public static class JobData {
+        private final String date;
+        private final int jobsCreated;
+        private final int jobsEnded;
+
+        public JobData(String date, int jobsCreated, int jobsEnded) {
+            this.date = date;
+            this.jobsCreated = jobsCreated;
+            this.jobsEnded = jobsEnded;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public int getJobsCreated() {
+            return jobsCreated;
+        }
+
+        public int getJobsEnded() {
+            return jobsEnded;
         }
     }
 }
-
