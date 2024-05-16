@@ -1,0 +1,136 @@
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+
+public class Assignment extends Application {
+
+    private TableView<JobData> table = new TableView<>();
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        String filePath = "C:\\Users\\DELL\\Downloads\\extracted_log";
+        HashMap<String, Integer> jobsCreated = new HashMap<>();
+        HashMap<String, Integer> jobsEnded = new HashMap<>();
+        HashMap<String, Integer> jobsByPartition = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.contains("slurm_rpc_submit_batch_job")) {
+                    String[] tokens = line.split(" ");
+                    String timestamp = tokens[0];
+                    jobsCreated.merge(timestamp.substring(0, 10), 1, Integer::sum);
+                } else if (line.contains("_job_complete:")) {
+                    String[] tokens = line.split(" ");
+                    String timestamp = tokens[0];
+                    jobsEnded.merge(timestamp.substring(0, 10), 1, Integer::sum);
+                } else if (line.contains("Partition=cpu-opteron") || line.contains("Partition=cpu-epyc") || line.contains("Partition=gpu")) {
+                    String[] tokens = line.split("Partition=");
+                    String partition = tokens[1].split(" ")[0];
+                    jobsByPartition.merge(partition, 1, Integer::sum);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Setting up the table columns
+        TableColumn<JobData, String> dateColumn = new TableColumn<>("Date");
+        dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
+
+        TableColumn<JobData, Integer> createdColumn = new TableColumn<>("Jobs Created");
+        createdColumn.setCellValueFactory(new PropertyValueFactory<>("jobsCreated"));
+
+        TableColumn<JobData, Integer> endedColumn = new TableColumn<>("Jobs Ended");
+        endedColumn.setCellValueFactory(new PropertyValueFactory<>("jobsEnded"));
+
+        TableColumn<JobData, Integer> opteronColumn = new TableColumn<>("Opteron Jobs");
+        opteronColumn.setCellValueFactory(new PropertyValueFactory<>("opteronJobs"));
+
+        TableColumn<JobData, Integer> epycColumn = new TableColumn<>("EPYC Jobs");
+        epycColumn.setCellValueFactory(new PropertyValueFactory<>("epycJobs"));
+
+        TableColumn<JobData, Integer> gpuColumn = new TableColumn<>("GPU Jobs");
+        gpuColumn.setCellValueFactory(new PropertyValueFactory<>("gpuJobs"));
+
+        table.getColumns().add(dateColumn);
+        table.getColumns().add(createdColumn);
+        table.getColumns().add(endedColumn);
+        table.getColumns().add(opteronColumn);
+        table.getColumns().add(epycColumn);
+        table.getColumns().add(gpuColumn);
+
+        // Populating the table with data
+        for (String date : jobsCreated.keySet()) {
+            int created = jobsCreated.getOrDefault(date, 0);
+            int ended = jobsEnded.getOrDefault(date, 0);
+            int opteronJobs = jobsByPartition.getOrDefault("cpu-opteron", 0);
+            int epycJobs = jobsByPartition.getOrDefault("cpu-epyc", 0);
+            int gpuJobs = jobsByPartition.getOrDefault("gpu", 0);
+            table.getItems().add(new JobData(date, created, ended, opteronJobs, epycJobs, gpuJobs));
+        }
+
+        VBox vbox = new VBox(table);
+        Scene scene = new Scene(vbox);
+
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Job Data");
+        primaryStage.show();
+    }
+
+    public static class JobData {
+        private final String date;
+        private final int jobsCreated;
+        private final int jobsEnded;
+        private final int opteronJobs;
+        private final int epycJobs;
+        private final int gpuJobs;
+
+        public JobData(String date, int jobsCreated, int jobsEnded, int opteronJobs, int epycJobs, int gpuJobs) {
+            this.date = date;
+            this.jobsCreated = jobsCreated;
+            this.jobsEnded = jobsEnded;
+            this.opteronJobs = opteronJobs;
+            this.epycJobs = epycJobs;
+            this.gpuJobs = gpuJobs;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public int getJobsCreated() {
+            return jobsCreated;
+        }
+
+        public int getJobsEnded() {
+            return jobsEnded;
+        }
+
+        public int getOpteronJobs() {
+            return opteronJobs;
+        }
+
+        public int getEpycJobs() {
+            return epycJobs;
+        }
+
+        public int getGpuJobs() {
+            return gpuJobs;
+        }
+    }
+}
+
