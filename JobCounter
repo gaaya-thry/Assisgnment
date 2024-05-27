@@ -1,0 +1,111 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+
+public class JobCounter {
+    public static HashMap<String, JobCounts> countJobsByDate(String filePath) {
+        HashMap<String, JobCounts> jobCountsByDate = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String date = extractDate(line);
+                if (date != null) {
+                    JobCounts counts = jobCountsByDate.computeIfAbsent(date, k -> new JobCounts());
+                    counts.incrementCounts(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return jobCountsByDate;
+    }
+
+    private static String extractDate(String line) {
+        // Modify this method based on how the date is represented in your log file
+        // For example, if the date is in the format YYYY-MM-DD at the beginning of each line
+        if (line.length() >= 10) {
+            return line.substring(0, 10); // Extracting the date part
+        }
+        return null;
+    }
+
+    public static class JobCounts {
+        private int jobsCreated;
+        private int jobsEnded;
+        private int opteronJobs;
+        private int epycJobs;
+        private int gpuJobs;
+        private int jobErrors;
+        private long totalExecutionTime;
+        private int jobCount;  // Total job count for calculating average execution time
+
+        public void incrementCounts(String line) {
+            // Increment counts based on the line content
+            if (line.contains("_slurm_rpc_submit_batch_job")) {
+                jobsCreated++;
+                jobCount++;
+            } else if (line.contains("_job_complete:")) {
+                jobsEnded++;
+                jobCount--;
+            } else if (line.contains("Partition=cpu-opteron")) {
+                opteronJobs++;
+            } else if (line.contains("Partition=cpu-epyc")) {
+                epycJobs++;
+            } else if (line.contains("Partition=gpu")) {
+                gpuJobs++;
+            } else if (line.contains("error: This association")) {
+                jobErrors++;
+            }
+            // Calculate execution time if needed
+            // Example: extract timestamps and calculate execution time
+        }
+
+        // Getters and setters for job counts
+        public int getJobsCreated() {
+            return jobsCreated;
+        }
+
+        public int getJobsEnded() {
+            return jobsEnded;
+        }
+
+        public int getOpteronJobs() {
+            return opteronJobs;
+        }
+
+        public int getEpycJobs() {
+            return epycJobs;
+        }
+
+        public int getGpuJobs() {
+            return gpuJobs;
+        }
+
+        public int getJobErrors() {
+            return jobErrors;
+        }
+
+        public long getTotalExecutionTime() {
+            return totalExecutionTime;
+        }
+
+        public int getJobCount() {
+            return jobCount;
+        }
+
+        public int getCpuOpteronCount() {
+            return opteronJobs;
+        }
+
+        public int getCpuEpycCount() {
+            return epycJobs;
+        }
+
+        public int getGpuCount() {
+            return gpuJobs;
+        }
+    }
+}
