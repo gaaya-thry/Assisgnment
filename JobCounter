@@ -2,18 +2,46 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 public class JobCounter {
-    public static HashMap<String, JobCounts> countJobsByDate(String filePath) {
-        HashMap<String, JobCounts> jobCountsByDate = new HashMap<>();
+    public static Map<String, JobCounts> countJobsByDate(String filePath) {
+        Map<String, JobCounts> jobCountsByDate = new HashMap<>();
+        Map<String, Integer> userErrorCounts = new HashMap<>(); // Map to track user error counts
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
+            Map<String, Long> jobStartTimes = new HashMap<>();
             while ((line = br.readLine()) != null) {
-                String date = extractDate(line);
-                if (date != null) {
-                    JobCounts counts = jobCountsByDate.computeIfAbsent(date, k -> new JobCounts());
-                    counts.incrementCounts(line);
+                String[] tokens = line.split(" ");
+                String timestamp = tokens[0].substring(1, tokens[0].length() - 1); // Removing the brackets
+                String date = timestamp.substring(0, 10);
+
+                JobCounts counts = jobCountsByDate.computeIfAbsent(date, k -> new JobCounts());
+
+                if (line.contains("_slurm_rpc_submit_batch_job")) {
+                    counts.incrementJobsCreated();
+                    String jobId = getJobId(line);
+                    jobStartTimes.put(jobId, parseTimeToMillis(timestamp));
+                } else if (line.contains("_job_complete:")) {
+                    counts.incrementJobsEnded();
+                    String jobId = getJobId(line);
+                    if (jobStartTimes.containsKey(jobId)) {
+                        long startTime = jobStartTimes.get(jobId);
+                        long endTime = parseTimeToMillis(timestamp);
+                        long executionTime = endTime - startTime;
+                        counts.addExecutionTime(executionTime);
+                    }
+                } else if (line.contains("Partition=cpu-opteron")) {
+                    counts.incrementOpteronJobs();
+                } else if (line.contains("Partition=cpu-epyc")) {
+                    counts.incrementEpycJobs();
+                } else if (line.contains("Partition=gpu")) {
+                    counts.incrementGpuJobs();
+                } else if (line.contains("error: This association")) {
+                    counts.incrementJobErrors();
+                    String user = getUserFromError(line); // Get the user from the error line
+                    userErrorCounts.put(user, userErrorCounts.getOrDefault(user, 0) + 1); // Increment user error count
                 }
             }
         } catch (IOException e) {
@@ -23,15 +51,35 @@ public class JobCounter {
         return jobCountsByDate;
     }
 
-    private static String extractDate(String line) {
-        // Modify this method based on how the date is represented in your log file
-        // For example, if the date is in the format YYYY-MM-DD at the beginning of each line
-        if (line.length() >= 10) {
-            return line.substring(0, 10); // Extracting the date part
+    private static long parseTimeToMillis(String timestamp) {
+        String[] timeParts = timestamp.split("[T:.]");
+        long hours = Long.parseLong(timeParts[1]) * 3600000;
+        long minutes = Long.parseLong(timeParts[2]) * 60000;
+        long seconds = Long.parseLong(timeParts[3]) * 1000;
+        long millis = Long.parseLong(timeParts[4]);
+        return hours + minutes + seconds + millis;
+    }
+
+    private static String getJobId(String line) {
+        String[] tokens = line.split(" ");
+        for (String token : tokens) {
+            if (token.startsWith("JobId=")) {
+                return token.split("=")[1];
+            }
         }
         return null;
     }
 
+    private static String getUserFromError(String line) {
+        String[] tokens = line.split(" ");
+        for (int i = 0; i < tokens.length - 1; i++) {
+            if (tokens[i].equals("User=")) {
+                return tokens[i + 1];
+            }
+        }
+        return null;
+    }
+    
     public static class JobCounts {
         private int jobsCreated;
         private int jobsEnded;
@@ -42,28 +90,36 @@ public class JobCounter {
         private long totalExecutionTime;
         private int jobCount;  // Total job count for calculating average execution time
 
-        public void incrementCounts(String line) {
-            // Increment counts based on the line content
-            if (line.contains("_slurm_rpc_submit_batch_job")) {
-                jobsCreated++;
-                jobCount++;
-            } else if (line.contains("_job_complete:")) {
-                jobsEnded++;
-                jobCount--;
-            } else if (line.contains("Partition=cpu-opteron")) {
-                opteronJobs++;
-            } else if (line.contains("Partition=cpu-epyc")) {
-                epycJobs++;
-            } else if (line.contains("Partition=gpu")) {
-                gpuJobs++;
-            } else if (line.contains("error: This association")) {
-                jobErrors++;
-            }
-            // Calculate execution time if needed
-            // Example: extract timestamps and calculate execution time
+        public void incrementJobsCreated() {
+            jobsCreated++;
+            jobCount++;
         }
 
-        // Getters and setters for job counts
+        public void incrementJobsEnded() {
+            jobsEnded++;
+            jobCount--;
+        }
+
+        public void incrementOpteronJobs() {
+            opteronJobs++;
+        }
+
+        public void incrementEpycJobs() {
+            epycJobs++;
+        }
+
+        public void incrementGpuJobs() {
+            gpuJobs++;
+        }
+
+        public void incrementJobErrors() {
+            jobErrors++;
+        }
+
+        public void addExecutionTime(long executionTime) {
+            totalExecutionTime += executionTime;
+        }
+
         public int getJobsCreated() {
             return jobsCreated;
         }
@@ -96,16 +152,9 @@ public class JobCounter {
             return jobCount;
         }
 
-        public int getCpuOpteronCount() {
-            return opteronJobs;
-        }
-
-        public int getCpuEpycCount() {
-            return epycJobs;
-        }
-
-        public int getGpuCount() {
-            return gpuJobs;
+        public long getAvgExecutionTime() {
+            return jobCount > 0 ? Math.max(totalExecutionTime / jobCount, 0) : 0;
         }
     }
 }
+
