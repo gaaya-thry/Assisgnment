@@ -1,0 +1,102 @@
+import java.util.List;
+
+public class JobData {
+    private String date;
+    private int jobsCreated;
+    private int jobsEnded;
+    private int opteronJobs;
+    private int epycJobs;
+    private int gpuJobs;
+    private int jobErrors;
+    private long avgExecutionTime;
+    private List<String> userErrorMessages; // New field for user error messages
+
+    public JobData(String date, int jobsCreated, int jobsEnded, int opteronJobs, int epycJobs, int gpuJobs, 
+                   int jobErrors, long avgExecutionTime, List<String> userErrorMessages) {
+        this.date = date;
+        this.jobsCreated = jobsCreated;
+        this.jobsEnded = jobsEnded;
+        this.opteronJobs = opteronJobs;
+        this.epycJobs = epycJobs;
+        this.gpuJobs = gpuJobs;
+        this.jobErrors = jobErrors;
+        this.avgExecutionTime = avgExecutionTime;
+        this.userErrorMessages = userErrorMessages; // Initialize the new field
+    }
+
+    // Getters and setters for all fields including the new userErrorMessages field
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
+    public int getJobsCreated() {
+        return jobsCreated;
+    }
+
+    public void setJobsCreated(int jobsCreated) {
+        this.jobsCreated = jobsCreated;
+    }
+
+    public int getJobsEnded() {
+        return jobsEnded;
+    }
+
+    public void setJobsEnded(int jobsEnded) {
+        this.jobsEnded = jobsEnded;
+    }
+
+    public int getOpteronJobs() {
+        return opteronJobs;
+    }
+
+    public void setOpteronJobs(int opteronJobs) {
+        this.opteronJobs = opteronJobs;
+    }
+
+    public int getEpycJobs() {
+        return epycJobs;
+    }
+
+    public void setEpycJobs(int epycJobs) {
+        this.epycJobs = epycJobs;
+    }
+
+    public int getGpuJobs() {
+        return gpuJobs;
+    }
+
+    public void setGpuJobs(int gpuJobs) {
+        this.gpuJobs = gpuJobs;
+    }
+
+    public int getJobErrors() {
+        return jobErrors;
+    }
+
+    public void setJobErrors(int jobErrors) {
+        this.jobErrors = jobErrors;
+    }
+
+    public long getAvgExecutionTime() {
+        return avgExecutionTime;
+    }
+
+    public void setAvgExecutionTime(long avgExecutionTime) {
+        this.avgExecutionTime = avgExecutionTime;
+    }
+
+    public List<String> getUserErrorMessages() {
+        return userErrorMessages;
+    }
+
+    public void setUserErrorMessages(List<String> userErrorMessages) {
+        this.userErrorMessages = userErrorMessages;
+    }
+}
+
+
