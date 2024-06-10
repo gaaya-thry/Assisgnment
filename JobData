@@ -9,10 +9,11 @@ public class JobData {
     private int gpuJobs;
     private int jobErrors;
     private long avgExecutionTime;
+    private double jobSuccessRate; // New field for job success rate
     private List<String> userErrorMessages; // New field for user error messages
 
-    public JobData(String date, int jobsCreated, int jobsEnded, int opteronJobs, int epycJobs, int gpuJobs, 
-                   int jobErrors, long avgExecutionTime, List<String> userErrorMessages) {
+    public JobData(String date, int jobsCreated, int jobsEnded, int opteronJobs, int epycJobs, int gpuJobs,
+                   int jobErrors, long avgExecutionTime, double jobSuccessRate, List<String> userErrorMessages) {
         this.date = date;
         this.jobsCreated = jobsCreated;
         this.jobsEnded = jobsEnded;
@@ -21,10 +22,11 @@ public class JobData {
         this.gpuJobs = gpuJobs;
         this.jobErrors = jobErrors;
         this.avgExecutionTime = avgExecutionTime;
+        this.jobSuccessRate = jobSuccessRate; // Initialize the new field
         this.userErrorMessages = userErrorMessages; // Initialize the new field
     }
 
-    // Getters and setters for all fields including the new userErrorMessages field
+    // Getters and setters for all fields including the new userErrorMessages and jobSuccessRate fields
 
     public String getDate() {
         return date;
@@ -90,6 +92,14 @@ public class JobData {
         this.avgExecutionTime = avgExecutionTime;
     }
 
+    public double getJobSuccessRate() {
+        return jobSuccessRate;
+    }
+
+    public void setJobSuccessRate(double jobSuccessRate) {
+        this.jobSuccessRate = jobSuccessRate;
+    }
+
     public List<String> getUserErrorMessages() {
         return userErrorMessages;
     }
@@ -98,5 +108,3 @@ public class JobData {
         this.userErrorMessages = userErrorMessages;
     }
 }
-
-
