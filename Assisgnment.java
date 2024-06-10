@@ -31,7 +31,7 @@ public class Assignment extends Application {
     public void start(Stage primaryStage) {
         TableView<JobData> tableView = new TableView<>();
         PieChart pieChart = new PieChart();
-        
+
         TableColumn<JobData, String> dateColumn = new TableColumn<>("Date");
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
 
@@ -56,18 +56,13 @@ public class Assignment extends Application {
         TableColumn<JobData, Long> avgExecutionTimeColumn = new TableColumn<>("Avg Execution Time");
         avgExecutionTimeColumn.setCellValueFactory(new PropertyValueFactory<>("avgExecutionTime"));
 
+        TableColumn<JobData, Double> successRateColumn = new TableColumn<>("Job Success Rate");
+        successRateColumn.setCellValueFactory(new PropertyValueFactory<>("jobSuccessRate"));
+
         TableColumn<JobData, List<String>> userErrorMessagesColumn = new TableColumn<>("User Errors");
         userErrorMessagesColumn.setCellValueFactory(new PropertyValueFactory<>("userErrorMessages"));
 
-        tableView.getColumns().add(dateColumn);
-        tableView.getColumns().add(createdColumn);
-        tableView.getColumns().add(endedColumn);
-        tableView.getColumns().add(opteronColumn);
-        tableView.getColumns().add(epycColumn);
-        tableView.getColumns().add(gpuColumn);
-        tableView.getColumns().add(errorColumn);
-        tableView.getColumns().add(avgExecutionTimeColumn);
-        tableView.getColumns().add(userErrorMessagesColumn);
+        tableView.getColumns().addAll(dateColumn, createdColumn, endedColumn, opteronColumn, epycColumn, gpuColumn, errorColumn, avgExecutionTimeColumn, successRateColumn, userErrorMessagesColumn);
 
         Map<String, JobCounter.JobCounts> jobCountsByDate = JobCounter.countJobsByDate("C:\\Users\\DELL\\Downloads\\extracted_log");
         ObservableList<JobData> jobDataList = FXCollections.observableArrayList();
@@ -77,9 +72,11 @@ public class Assignment extends Application {
             JobCounter.JobCounts counts = entry.getValue();
             List<String> userErrorMessages = counts.getUserErrorMessages() != null ? counts.getUserErrorMessages() : new ArrayList<>();
 
-            JobData jobData = new JobData(date, counts.getJobsCreated(), counts.getJobsEnded(), counts.getOpteronJobs(), 
-                                          counts.getEpycJobs(), counts.getGpuJobs(), counts.getJobErrors(), 
-                                          counts.getAvgExecutionTime(), userErrorMessages);
+            double successRate = (counts.getJobsCreated() > 0) ? ((double) counts.getJobsEnded() / counts.getJobsCreated()) * 100 : 0;
+
+            JobData jobData = new JobData(date, counts.getJobsCreated(), counts.getJobsEnded(), counts.getOpteronJobs(),
+                    counts.getEpycJobs(), counts.getGpuJobs(), counts.getJobErrors(),
+                    counts.getAvgExecutionTime(), successRate, userErrorMessages);
 
             jobDataList.add(jobData);
         }
@@ -102,21 +99,20 @@ public class Assignment extends Application {
             totalJobErrors += jobData.getJobErrors();
         }
 
-        // Add totals to the PieChart
         pieChart.getData().addAll(
-            new PieChart.Data("Jobs Created", totalJobsCreated),
-            new PieChart.Data("Jobs Ended", totalJobsEnded),
-            new PieChart.Data("Opteron Jobs", totalOpteronJobs),
-            new PieChart.Data("EPYC Jobs", totalEpycJobs),
-            new PieChart.Data("GPU Jobs", totalGpuJobs),
-            new PieChart.Data("Job Errors", totalJobErrors)
+                new PieChart.Data("Jobs Created", totalJobsCreated),
+                new PieChart.Data("Jobs Ended", totalJobsEnded),
+                new PieChart.Data("Opteron Jobs", totalOpteronJobs),
+                new PieChart.Data("EPYC Jobs", totalEpycJobs),
+                new PieChart.Data("GPU Jobs", totalGpuJobs),
+                new PieChart.Data("Job Errors", totalJobErrors)
         );
 
         BorderPane root = new BorderPane();
         VBox vbox = new VBox(tableView, pieChart);
         root.setCenter(vbox);
 
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(root, 1000, 600);
         primaryStage.setTitle("Job Data Viewer");
         primaryStage.setScene(scene);
         primaryStage.show();
