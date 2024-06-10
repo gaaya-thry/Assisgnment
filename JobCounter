@@ -8,13 +8,6 @@ public class JobCounter {
         Map<String, JobCounts> jobCountsByDate = new HashMap<>();
         Map<String, List<String>> userErrorMessagesByDate = new HashMap<>();
 
-        int totalJobsCreated = 0;
-        int totalJobsEnded = 0;
-        int totalOpteronJobs = 0;
-        int totalEpycJobs = 0;
-        int totalGpuJobs = 0;
-        int totalJobErrors = 0;
-
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             Map<String, Long> jobStartTimes = new HashMap<>();
@@ -28,32 +21,28 @@ public class JobCounter {
 
                 if (line.contains("_slurm_rpc_submit_batch_job")) {
                     counts.incrementJobsCreated();
-                    totalJobsCreated++;
                     String jobId = getJobId(line);
                     jobStartTimes.put(jobId, parseTimeToMillis(timestamp));
                 } else if (line.contains("_job_complete:")) {
                     counts.incrementJobsEnded();
-                    totalJobsEnded++;
                     String jobId = getJobId(line);
                     if (jobStartTimes.containsKey(jobId)) {
                         long startTime = jobStartTimes.get(jobId);
                         long endTime = parseTimeToMillis(timestamp);
-                        long executionTime = endTime - startTime;
-                        counts.addExecutionTime(executionTime);
-                        counts.incrementJobCount(); // Increment only if the job has both start and end time
+                        if (endTime >= startTime) {
+                            long executionTime = endTime - startTime;
+                            counts.addExecutionTime(executionTime);
+                            counts.incrementJobCount(); // Increment only if the job has both start and end time
+                        }
                     }
                 } else if (line.contains("Partition=cpu-opteron")) {
                     counts.incrementOpteronJobs();
-                    totalOpteronJobs++;
                 } else if (line.contains("Partition=cpu-epyc")) {
                     counts.incrementEpycJobs();
-                    totalEpycJobs++;
                 } else if (line.contains("Partition=gpu")) {
                     counts.incrementGpuJobs();
-                    totalGpuJobs++;
                 } else if (line.contains("error: This association")) {
                     counts.incrementJobErrors();
-                    totalJobErrors++;
                     userErrorMessages.add("[" + timestamp + "] " + line.trim());
                 }
             }
@@ -61,24 +50,21 @@ public class JobCounter {
             e.printStackTrace();
         }
 
-        // Assign user error messages to corresponding dates
         for (String date : jobCountsByDate.keySet()) {
             JobCounts counts = jobCountsByDate.get(date);
             counts.setUserErrorMessages(userErrorMessagesByDate.get(date));
         }
 
-        // Add totals to the map under a special key "Total"
-        jobCountsByDate.put("Total", new JobCounts(totalJobsCreated, totalJobsEnded, totalOpteronJobs, totalEpycJobs, totalGpuJobs, totalJobErrors, 0, Collections.emptyList()));
-
         return jobCountsByDate;
     }
 
     private static long parseTimeToMillis(String timestamp) {
-        String[] timeParts = timestamp.split("[T:.]");
-        long hours = Long.parseLong(timeParts[1]) * 3600000;
-        long minutes = Long.parseLong(timeParts[2]) * 60000;
-        long seconds = Long.parseLong(timeParts[3]) * 1000;
-        long millis = Long.parseLong(timeParts[4]);
+        String[] dateAndTime = timestamp.split("T");
+        String[] timeParts = dateAndTime[1].split("[:.]");
+        long hours = Long.parseLong(timeParts[0]) * 3600000;
+        long minutes = Long.parseLong(timeParts[1]) * 60000;
+        long seconds = Long.parseLong(timeParts[2]) * 1000;
+        long millis = Long.parseLong(timeParts[3]);
         return hours + minutes + seconds + millis;
     }
 
@@ -100,7 +86,7 @@ public class JobCounter {
         private int gpuJobs;
         private int jobErrors;
         private long totalExecutionTime;
-        private int jobCount;  // Total job count for calculating average execution time
+        private int jobCount; // Total job count for calculating average execution time
         private List<String> userErrorMessages; // User error messages
 
         public JobCounts() {
@@ -191,7 +177,3 @@ public class JobCounter {
         }
     }
 }
-
-
-
-
